@@ -35,7 +35,7 @@ public class DisplayActivity extends Activity {
     TextView mPilotTime;
 
     private Context mContext;
-    private Activity mActivity;
+    private DisplayActivity mActivity;
 
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothServerSocket mmServerSocket;
@@ -45,6 +45,7 @@ public class DisplayActivity extends Activity {
     private OutputStream mmOutStream;
 
     private boolean mIsListening = false;
+    private boolean mRestart = true;
 
     public static int REQUEST_ENABLE_BT = 100;
 
@@ -77,6 +78,13 @@ public class DisplayActivity extends Activity {
     }
 
     @Override
+    public void onDestroy(){
+        super.onDestroy();
+        mRestart = false;
+        mIsListening = false;
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == DisplayActivity.REQUEST_ENABLE_BT){
@@ -88,9 +96,9 @@ public class DisplayActivity extends Activity {
         }
     }
 
-    private void startListening() {
+    protected void startListening() {
 
-
+        Log.i("BT", "Start Listening");
         BluetoothServerSocket tmp = null;
         UUID uuid = UUID.fromString(getResources().getString(R.string.external_display_uuid));
         try {
@@ -102,6 +110,8 @@ public class DisplayActivity extends Activity {
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         mPilotName.setText("Waiting for connection...");
+        mPilotName.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
+        mPilotTime.setText("");
 
         Thread acceptThread = new Thread(new Runnable()
         {
@@ -127,6 +137,7 @@ public class DisplayActivity extends Activity {
 
             }
         });
+        Log.i("BT", "Starting Accept Thread");
         acceptThread.start();
 
     }
@@ -206,7 +217,6 @@ public class DisplayActivity extends Activity {
 
         Log.i("BT", "NOT LISTENING ANYMORE!");
         closeSocket();
-        finish();
     }
 
     public void closeSocket(){
@@ -227,6 +237,15 @@ public class DisplayActivity extends Activity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        if (mRestart) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mActivity.startListening();
+                }
+            });
         }
     }
 
